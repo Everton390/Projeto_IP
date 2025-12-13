@@ -8,11 +8,12 @@ largura = 1280
 altura = 760
 
 tela = pygame.display.set_mode((largura, altura))
-pygame.display.set_caption('Caramelo: A Saga da Coxinha Dourada')
+pygame.display.set_caption('Caramelo: A Saga do Bolo de Rolo Dourado')
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 spritesheet_path = os.path.join(script_dir, 'assets', 'cachorro_animacao.png')
-cachorro_latindo_path = os.path.join(script_dir, 'assets', 'cachorro_latindo.png')
+cachorro_latindo_path = os.path.join(
+    script_dir, 'assets', 'cachorro_latindo.png')
 cachorro_jpg_path = os.path.join(script_dir, 'assets', 'cachorro.jpeg')
 
 # Parâmetros de escala/animacao (reduzidos para sprites menores)
@@ -108,6 +109,93 @@ barking = False
 facing_left = False
 # outras flags
 
+# --- Tela de menu inicial ---
+
+
+def _draw_button(surface, rect, text, font, hover=False):
+    color = (200, 160, 60) if not hover else (255, 200, 70)
+    pygame.draw.rect(surface, color, rect, border_radius=8)
+    txt = font.render(text, True, (10, 10, 10))
+    txt_rect = txt.get_rect(center=rect.center)
+    surface.blit(txt, txt_rect)
+
+
+menu_path = os.path.join(script_dir, 'assets', 'menu.jpeg')
+menu_img = None
+mrect = None
+if os.path.exists(menu_path):
+    try:
+        menu_img = pygame.image.load(menu_path).convert()
+        mw, mh = menu_img.get_size()
+        # escala para COBRIR toda a tela (cover) — pode cortar partes da imagem
+        scale = max(largura / mw, altura / mh)
+        new_w, new_h = int(mw * scale), int(mh * scale)
+        if (new_w, new_h) != (mw, mh):
+            menu_img = pygame.transform.smoothscale(menu_img, (new_w, new_h))
+        mrect = menu_img.get_rect()
+        mrect.center = (largura // 2, altura // 2)
+    except Exception:
+        menu_img = None
+
+font_title = pygame.font.SysFont(None, 72)
+font_btn = pygame.font.SysFont(None, 48)
+btn_w, btn_h = 220, 64
+start_rect = pygame.Rect((0, 0), (btn_w, btn_h))
+exit_rect = pygame.Rect((0, 0), (btn_w, btn_h))
+
+menu_clock = pygame.time.Clock()
+in_menu = True
+while in_menu:
+    mx, my = pygame.mouse.get_pos()
+    click = False
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            click = True
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                in_menu = False
+                break
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+
+    tela.fill((20, 20, 30))
+    if menu_img and mrect:
+        # blita a imagem centralizada cobrindo a tela
+        tela.blit(menu_img, mrect)
+        # posiciona os botões dentro da imagem (cerca de 25% abaixo do centro)
+        y_pos = mrect.centery + int(mrect.height * 0.25)
+        spacing = 140
+        start_rect.center = (largura // 2 - spacing, y_pos)
+        exit_rect.center = (largura // 2 + spacing, y_pos)
+    else:
+        title_surf = font_title.render('CARAMelo', True, (255, 200, 60))
+        trect = title_surf.get_rect(center=(largura // 2, altura // 4))
+        tela.blit(title_surf, trect)
+        # fallback positions when no image
+        y_pos = int(altura * 0.65)
+        start_rect.center = (largura // 2 - btn_w - 20, y_pos)
+        exit_rect.center = (largura // 2 + btn_w + 20, y_pos)
+
+    hover_start = start_rect.collidepoint((mx, my))
+    hover_exit = exit_rect.collidepoint((mx, my))
+    _draw_button(tela, start_rect, 'Start', font_btn, hover_start)
+    _draw_button(tela, exit_rect, 'Exit', font_btn, hover_exit)
+
+    if hover_start and click:
+        in_menu = False
+        break
+    if hover_exit and click:
+        pygame.quit()
+        sys.exit()
+
+    pygame.display.flip()
+    menu_clock.tick(60)
+
+# fim do menu; o laço do jogo começa abaixo
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
