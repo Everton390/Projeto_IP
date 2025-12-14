@@ -103,6 +103,24 @@ if os.path.exists(background_path):
     background = pygame.transform.scale(background, (largura,altura))
 else:
     print("Background não encontrado", background_path)
+#ajeitando imagem da plataformas
+def recortar_transparencia(img):
+    mask = pygame.mask.from_surface(img)
+    rects = mask.get_bounding_rects()
+    if not rects:
+        return img
+    return img.subsurface(rects[0]).copy()
+
+#carregando plataformas1
+plataforma_img_path = os.path.join(
+    script_dir,
+    'IMAGENS PROJETO IP',
+    'PLATAFORMAS',
+    'nuvem_png.png'
+)
+plataforma_img = pygame.image.load(plataforma_img_path).convert_alpha()
+plataforma_img = recortar_transparencia(plataforma_img)
+
 
 clock = pygame.time.Clock()
 velocidade_obj = 5
@@ -123,9 +141,13 @@ on_ground = False
 plataformas = [
     pygame.Rect(300,660,100,25),
     pygame.Rect(479,560,112,25),
-    pygame.Rect(600,530,92,25),
-    pygame.Rect(479,460,112,25),
-    pygame.Rect(0,330,225,25)
+    pygame.Rect(484,460,112,25),
+    pygame.Rect(350,355,50,25),
+    pygame.Rect(700,355,92,25),
+    pygame.Rect(0,330,225,25),
+    pygame.Rect(290,275,112,25),
+    pygame.Rect(850,275,90,25),
+    pygame.Rect(0,200,112,25)
 ]
 # outras flags
 
@@ -293,7 +315,11 @@ while True:
 
     # desenha as plataformas
     for p in plataformas:
-        pygame.draw.rect(tela, (180,180,180), p)
+        plataforma_img_ajustada = pygame.transform.smoothscale(
+            plataforma_img,
+            (p.width, p.height)
+        )
+        tela.blit(plataforma_img_ajustada, p.topleft)
 
     # Atualiza animação: pulo / movimento / idle
     now = pygame.time.get_ticks()
