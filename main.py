@@ -15,6 +15,10 @@ spritesheet_path = os.path.join(script_dir, 'assets', 'cachorro_animacao.png')
 cachorro_latindo_path = os.path.join(
     script_dir, 'assets', 'cachorro_latindo.png')
 cachorro_jpg_path = os.path.join(script_dir, 'assets', 'cachorro.jpeg')
+# backgorund
+background_path = os.path.join(
+    script_dir, 'IMAGENS PROJETO IP', 'BACKGROUND', 'BACKGROUND1.jpg'
+)
 
 # Parâmetros de escala/animacao (reduzidos para sprites menores)
 # Ajuste estes valores para deixar o sprite ainda menor/grande conforme necessário
@@ -92,6 +96,13 @@ except pygame.error as e:
         f"Verifique se os caminhos '{spritesheet_path}' ou '{cachorro_jpg_path}' estão corretos.")
     pygame.quit()
     sys.exit()
+#carregando background
+background = None
+if os.path.exists(background_path):
+    background = pygame.image.load(background_path).convert()
+    background = pygame.transform.scale(background, (largura,altura))
+else:
+    print("Background não encontrado", background_path)
 
 clock = pygame.time.Clock()
 velocidade_obj = 5
@@ -107,6 +118,15 @@ jump_frame_index = min(2, max(0, len(animation_frames) - 1))
 barking = False
 # direção que o sprite está virado (False = direita, True = esquerda)
 facing_left = False
+# Plataformas
+on_ground = False
+plataformas = [
+    pygame.Rect(300,660,100,25),
+    pygame.Rect(479,560,112,25),
+    pygame.Rect(600,530,92,25),
+    pygame.Rect(479,460,112,25),
+    pygame.Rect(0,330,225,25)
+]
 # outras flags
 
 # --- Tela de menu inicial ---
@@ -211,9 +231,10 @@ while True:
                     bark_last = pygame.time.get_ticks()
             # pular com W (evento KEYDOWN também inicia imediatamente)
             if event.key == pygame.K_w or event.key == pygame.K_UP:
-                if not jumping and rect_obj.bottom >= ground_y:
+                if not jumping and on_ground:
                     vel_y = jump_speed
                     jumping = True
+                    on_ground = False
 
     teclas = pygame.key.get_pressed()
     # sem lógica de latido por espaço
@@ -231,9 +252,10 @@ while True:
     moving = (dx != 0)
 
     # pular com W/UP (tecla segurada também inicia pulo)
-    if (teclas[pygame.K_w] or teclas[pygame.K_UP]) and not jumping and rect_obj.bottom >= ground_y:
+    if (teclas[pygame.K_w] or teclas[pygame.K_UP]) and not jumping and on_ground:
         vel_y = jump_speed
         jumping = True
+        on_ground = False
 
     if rect_obj.left < 0:
         rect_obj.left = 0
@@ -242,10 +264,18 @@ while True:
         rect_obj.right = largura
 
     # aplica gravidade e movimento vertical
-    if jumping or rect_obj.bottom < ground_y:
-        vel_y += gravity
-        rect_obj.y += int(vel_y)
-
+    vel_y += gravity
+    rect_obj.y += int(vel_y)
+    on_ground = False
+    # colisão com plataformas
+    for p in plataformas:
+        if rect_obj.colliderect(p):
+            # só pousa se estiver caindo por cima
+            if vel_y > 0 and rect_obj.bottom - vel_y <= p.top:
+                rect_obj.bottom = p.top
+                vel_y = 0
+                jumping = False
+                on_ground = True
     # limites verticais e aterrissagem
     if rect_obj.top < 0:
         rect_obj.top = 0
@@ -255,8 +285,15 @@ while True:
         rect_obj.bottom = ground_y
         vel_y = 0
         jumping = False
+        on_ground = True
+    if background:
+        tela.blit(background, (0, 0))
+    else:
+        tela.fill((0, 0, 0))
 
-    tela.fill((0, 0, 0))
+    # desenha as plataformas
+    for p in plataformas:
+        pygame.draw.rect(tela, (180,180,180), p)
 
     # Atualiza animação: pulo / movimento / idle
     now = pygame.time.get_ticks()
